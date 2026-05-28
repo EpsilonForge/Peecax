@@ -102,7 +102,7 @@ solver = FreqSolver(segments, params)
 
 # ── 4. Frequency sweep  100 MHz – 10 GHz ─────────────────────────────────────
 
-freqs_hz = np.logspace(8, 10, 20)   # 20 log-spaced points
+freqs_hz = np.logspace(8, 10, 20)   # 100 MHz to 10 GHz
 print("\nRunning PEEC frequency sweep (100 MHz – 10 GHz) …")
 results = solver.sweep(freqs_hz)
 

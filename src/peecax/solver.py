@@ -111,7 +111,7 @@ class FreqSolver:
         :class:`FreqResult`
         """
         if omega <= 0:
-            raise ValueError("omega must be positive.")
+            raise ValueError(f"omega must be positive, got {omega}.")
 
         p = self.params
 

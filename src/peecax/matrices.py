@@ -13,6 +13,9 @@ import jax.numpy as jnp
 
 from .geometry import Segment, MU0, EPS0
 
+# Threshold below which |κ| is treated as zero (DC limit) to avoid tanh(0)
+_KAPPA_THRESHOLD: float = 1e-8
+
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -72,7 +75,7 @@ def build_R(segments: Sequence[Segment], omega: float) -> jnp.ndarray:
     R : (N, N) complex JAX array  (imaginary part is zero by construction).
     """
     if omega <= 0:
-        raise ValueError("omega must be positive.")
+        raise ValueError(f"omega must be positive, got {omega}.")
     _, lengths, widths, thicknesses, _, _, resistivities, permeabilities = (
         _build_geometry_arrays(segments)
     )
@@ -87,7 +90,7 @@ def build_R(segments: Sequence[Segment], omega: float) -> jnp.ndarray:
     # kappa * coth(kappa) – safe for small |kappa| (DC limit → 1)
     with np.errstate(over="ignore", invalid="ignore"):
         factor = np.where(
-            np.abs(kappa) < 1e-8,
+            np.abs(kappa) < _KAPPA_THRESHOLD,
             1.0 + 0j,
             kappa / np.tanh(kappa),
         )
@@ -205,7 +208,7 @@ def build_P(
     P : (N, N) complex JAX array.
     """
     if omega <= 0:
-        raise ValueError("omega must be positive.")
+        raise ValueError(f"omega must be positive, got {omega}.")
 
     (midpoints, lengths, _, _, _,
      equiv_radii, _, _) = _build_geometry_arrays(segments)

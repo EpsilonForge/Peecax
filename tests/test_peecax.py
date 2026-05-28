@@ -110,7 +110,7 @@ class TestBuildR:
 
     def test_dc_limit(self, single_segment):
         """At very low ω the skin-depth correction → 1, so R = ρl/(wt)."""
-        omega_dc = 2 * math.pi * 1.0  # 1 Hz – deep DC
+        omega_dc = 2 * math.pi * 1.0  # 1 Hz – near-DC
         R_dc = build_R([single_segment], omega_dc)
         seg = single_segment
         expected = seg.resistivity * seg.length / (seg.width * seg.thickness)

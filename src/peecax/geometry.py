@@ -14,6 +14,9 @@ EPS0: float = 8.854187817e-12  # Permittivity of free space [F/m]
 # Resistivity of copper at 20 °C  [Ω·m]
 RHO_COPPER: float = 1.72e-8
 
+# Minimum length / direction-norm below which a segment is considered degenerate
+_MIN_NORM: float = 1e-15
+
 # ── Segment dataclass ─────────────────────────────────────────────────────────
 
 
@@ -53,7 +56,7 @@ class Segment:
         self.midpoint = np.asarray(self.midpoint, dtype=float)
         self.direction = np.asarray(self.direction, dtype=float)
         norm = np.linalg.norm(self.direction)
-        if norm < 1e-15:
+        if norm < _MIN_NORM:
             raise ValueError("Segment direction vector must be non-zero.")
         self.direction = self.direction / norm
 
@@ -89,7 +92,7 @@ class Segment:
         p1 = np.asarray(p1, dtype=float)
         vec = p1 - p0
         length = float(np.linalg.norm(vec))
-        if length < 1e-15:
+        if length < _MIN_NORM:
             raise ValueError("Segment end-points must be distinct.")
         direction = vec / length
         midpoint = 0.5 * (p0 + p1)

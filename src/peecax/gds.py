@@ -12,6 +12,10 @@ import numpy as np
 
 from .geometry import Segment, RHO_COPPER, MU0
 
+# When extracting segments from a polygon outline with no explicit width,
+# the width is estimated as this fraction of the segment length.
+_DEFAULT_ASPECT_RATIO: float = 0.1
+
 
 def _polyline_to_segments(
     points: np.ndarray,
@@ -145,7 +149,7 @@ def segments_from_component(
         # Infer approximate width from adjacent segment lengths as a
         # placeholder; users should pass an explicit width for accuracy.
         for s in segs:
-            s.width = s.length * 0.1  # rough 10 % aspect ratio default
+            s.width = s.length * _DEFAULT_ASPECT_RATIO  # rough aspect-ratio default
         segments.extend(segs)
     return segments
 
