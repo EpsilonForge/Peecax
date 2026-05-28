@@ -1,0 +1,181 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,bm}
+
+\title{Crude CES Model with Explicit Matrix Entries}
+\author{}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Goal}
+This document defines a deliberately crude but fully explicit RLGC model.
+The model keeps inductive and capacitive coupling, includes dielectric substrate loss, and uses direct $\mathcal{O}(N^2)$ matrix assembly formulas.
+
+\section{Geometry and Variables}
+Discretize metal into $N$ straight segments.
+Each segment $i$ has midpoint $\bm{r}_i=(x_i,y_i,z_i)$, length $l_i$, width $w_i$, thickness $t_i$, and direction unit vector $\hat{\bm{l}}_i$.
+
+Define center-to-center distance
+\[
+d_{ij}=\|\bm{r}_i-\bm{r}_j\|,\qquad i\neq j.
+\]
+For self terms, use equivalent radius
+\[
+a_i=0.2235\,(w_i+t_i).
+\]
+
+Substrate model: one effective dielectric with
+\[
+\epsilon^*(\omega)=\epsilon'-j\frac{\sigma_d}{\omega},
+\qquad
+\epsilon_{\mathrm{eff}}^*(\omega)=\frac{1+\epsilon^*(\omega)}{2}.
+\]
+
+\section{Resistance Matrix $\bm{R}(\omega)$}
+Diagonal only:
+\[
+R_{ii}(\omega)=\rho_i\frac{l_i}{w_i t_i}\,\Re\!\left[\kappa_i\coth(\kappa_i)\right],
+\qquad
+\kappa_i=(1+j)\frac{t_i}{\delta_i(\omega)},
+\]
+\[
+\delta_i(\omega)=\sqrt{\frac{2\rho_i}{\omega\mu_i}}.
+\]
+Set
+\[
+R_{ij}(\omega)=0\quad (i\neq j).
+\]
+
+\section{Inductance Matrix $\bm{L}$}
+Use explicit approximate entries.
+
+Self terms:
+\[
+L_{ii}=\frac{\mu_0}{2\pi}l_i\left[\ln\!\left(\frac{2l_i}{a_i}\right)-1\right].
+\]
+
+Mutual terms (straight-segment crude approximation):
+\[
+L_{ij}=\frac{\mu_0}{4\pi}(\hat{\bm{l}}_i\cdot\hat{\bm{l}}_j)
+\frac{l_i l_j}{\sqrt{d_{ij}^2+\eta^2}},
+\qquad i\neq j,
+\]
+where $\eta=\tfrac12(a_i+a_j)$ avoids singular behavior at very small spacing.
+
+Symmetrize after fill:
+\[
+\bm{L}\leftarrow\frac{\bm{L}+\bm{L}^\mathsf{T}}{2}.
+\]
+
+\section{Potential Matrix and Capacitance}
+Build potential matrix $\bm{P}(\omega)$ directly.
+
+Self terms:
+\[
+P_{ii}(\omega)=\frac{1}{2\pi\epsilon_0\epsilon_{\mathrm{eff}}^*(\omega)\,l_i}
+\ln\!\left(\frac{2l_i}{a_i}\right).
+\]
+
+Mutual terms:
+\[
+P_{ij}(\omega)=\frac{1}{4\pi\epsilon_0\epsilon_{\mathrm{eff}}^*(\omega)}
+\frac{1}{\sqrt{d_{ij}^2+\eta^2}},
+\qquad i\neq j.
+\]
+
+Then
+\[
+\bm{C}^*(\omega)=\bm{P}(\omega)^{-1}.
+\]
+Use
+\[
+\bm{C}(\omega)=\Re[\bm{C}^*(\omega)],
+\qquad
+\bm{G}_d(\omega)=-\omega\,\Im[\bm{C}^*(\omega)].
+\]
+
+\section{Admittance Matrix and Solve}
+Define branch impedance
+\[
+\bm{Z}_{RL}(\omega)=\bm{R}(\omega)+j\omega\bm{L},
+\qquad
+\bm{Y}_{RL}(\omega)=\bm{Z}_{RL}(\omega)^{-1}.
+\]
+
+For the compact crude model (segment-domain solve), use
+\[
+\bm{Y}(\omega)=\bm{Y}_{RL}(\omega)+j\omega\bm{C}(\omega)+\bm{G}_d(\omega).
+\]
+Given current excitation $\bm{i}(\omega)$,
+\[
+\bm{v}(\omega)=\bm{Y}(\omega)^{-1}\bm{i}(\omega).
+\]
+
+Equivalent impedance matrix:
+\[
+\bm{Z}(\omega)=\bm{Y}(\omega)^{-1}.
+\]
+
+\section{Approximation Type Used in Each Block}
+\subsection{Geometry Discretization}
+\textbf{Approximation type:} piecewise-uniform segment model (low-order PEEC style).
+
+Each conductor is replaced by straight segments with uniform current and charge per segment.
+This is a first-order spatial discretization, so current crowding near corners and rapidly varying charge density are not resolved.
+
+\subsection{Equivalent Radius $a_i$}
+\textbf{Approximation type:} rectangular-to-round shape reduction.
+
+The mapping $a_i=0.2235(w_i+t_i)$ converts a rectangular cross section into a single effective radius.
+This preserves the dominant logarithmic dependence in self terms but not detailed edge-field behavior.
+
+\subsection{Resistance Matrix $\bm{R}(\omega)$}
+\textbf{Approximation type:} 1D conduction with slab skin-effect correction.
+
+The diagonal formula assumes current flows along segment length and uses a local thickness-only skin-depth correction.
+Off-diagonal terms are set to zero, which neglects proximity-effect coupling between nearby conductors.
+
+\subsection{Inductance Matrix $\bm{L}$}
+\textbf{Approximation type:} partial inductance with filament-like mutual kernel.
+
+The self term is a logarithmic long-wire approximation.
+The mutual term uses centerline distance and orientation dot product, replacing the full Neumann double integral by a closed-form surrogate.
+The softening parameter $\eta$ is a numerical regularization that removes near-singularity and acts as a finite-size correction.
+
+\subsection{Potential Matrix $\bm{P}(\omega)$}
+\textbf{Approximation type:} quasi-static Coulomb kernel in a homogeneous effective medium.
+
+The mutual term is $1/r$ with distance softening; the self term is logarithmic.
+This avoids full BEM panel integration and avoids layered Green functions, so vertical field stratification is represented only through an effective permittivity.
+
+\subsection{Dielectric Substrate Model}
+\textbf{Approximation type:} single effective-medium complex permittivity.
+
+Using
+\[
+\epsilon_{\mathrm{eff}}^*(\omega)=\frac{1+\epsilon^*(\omega)}{2}
+\]
+is a quasi-TEM mixing rule for air plus substrate.
+It captures first-order dielectric loading and loss tangent behavior but not full multilayer dispersion or anisotropy.
+
+\subsection{Capacitance and Dielectric Conductance Split}
+\textbf{Approximation type:} complex-capacitance decomposition.
+
+The model computes $\bm{C}^*=\bm{P}^{-1}$ and then separates storage and loss as
+$\bm{C}=\Re(\bm{C}^*)$ and $\bm{G}_d=-\omega\Im(\bm{C}^*)$.
+This is a linear small-signal representation and assumes weak field nonlinearity.
+
+\subsection{System Solve}
+\textbf{Approximation type:} linear frequency-domain lumped network.
+
+The final admittance
+\[
+\bm{Y}=\bm{Y}_{RL}+j\omega\bm{C}+\bm{G}_d
+\]
+assumes linear, time-harmonic behavior and no radiation coupling.
+Hence it is most reliable in electrically compact, quasi-static or moderately low-frequency regimes.
+
+
+\end{document}
