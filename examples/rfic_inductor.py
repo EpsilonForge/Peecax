@@ -363,3 +363,112 @@ fig.tight_layout()
 plt.savefig("examples/inductor_impedance.png", dpi=150)
 print("\nPlot saved to examples/inductor_impedance.png")
 plt.show()
+
+
+# ── 9. Imaginary impedance plot: Im(Z11) ─────────────────────────────────────
+
+fig_im, ax_im = plt.subplots(1, 1, figsize=(9, 4.5))
+
+# Log y-axis requires positive values, so plot |Im(Z11)|.
+ax_im.loglog(freqs_hz / 1e9, np.abs(np.imag(Z11_sim)), ".", ms=4,
+               label="PEEC simulation")
+ax_im.loglog(freqs_hz / 1e9, np.abs(np.imag(Z_analytic)), "-", lw=1.5,
+               label="JAX/Optax fit")
+ax_im.loglog(freqs_hz / 1e9, np.abs(np.imag(Z_cx_eval)), "--", lw=1.5,
+               label="Circulax fit")
+
+ax_im.set_xlabel("Frequency (GHz)")
+ax_im.set_ylabel(r"$|\mathrm{Im}(Z_{11})|$ (Ω)")
+ax_im.set_title("IHP SG13G2 Spiral Inductor – |Im(Z11)| (log-log)")
+ax_im.legend(fontsize=8)
+ax_im.grid(True, which="both", linestyle="--", linewidth=0.5)
+
+fig_im.tight_layout()
+plt.savefig("examples/inductor_imag_z.png", dpi=150)
+print("Plot saved to examples/inductor_imag_z.png")
+plt.show()
+
+
+# ── 10. Slope analysis of imaginary impedance ────────────────────────────────
+
+def _slope_loglog(x: np.ndarray, y: np.ndarray) -> float:
+    """Return slope m from log10(y) = m*log10(x) + b."""
+    m, _ = np.polyfit(np.log10(x), np.log10(y), 1)
+    return float(m)
+
+
+def _power_law_fit(x: np.ndarray, y: np.ndarray) -> tuple[float, float]:
+    """Fit y = k*x^m in log-space and return (m, k)."""
+    m, b = np.polyfit(np.log10(x), np.log10(y), 1)
+    k = 10.0 ** b
+    return float(m), float(k)
+
+
+def _slope_linear(x: np.ndarray, y: np.ndarray) -> float:
+    """Return slope m from y = m*x + b."""
+    m, _ = np.polyfit(x, y, 1)
+    return float(m)
+
+
+f_ghz = freqs_hz / 1e9
+f_hz = freqs_hz
+im_sim_abs = np.abs(np.imag(Z11_sim))
+im_fit_abs = np.abs(np.imag(Z_analytic))
+im_cx_abs = np.abs(np.imag(Z_cx_eval))
+
+mask = (
+    np.isfinite(f_ghz)
+    & np.isfinite(im_sim_abs)
+    & np.isfinite(im_fit_abs)
+    & np.isfinite(im_cx_abs)
+    & (f_ghz > 0.0)
+    & (im_sim_abs > 0.0)
+    & (im_fit_abs > 0.0)
+    & (im_cx_abs > 0.0)
+)
+
+f_fit = f_ghz[mask]
+im_sim_fit = im_sim_abs[mask]
+im_fit_fit = im_fit_abs[mask]
+im_cx_fit = im_cx_abs[mask]
+
+slope_loglog_sim = _slope_loglog(f_fit, im_sim_fit)
+slope_loglog_fit = _slope_loglog(f_fit, im_fit_fit)
+slope_loglog_cx = _slope_loglog(f_fit, im_cx_fit)
+
+slope_linear_sim = _slope_linear(f_fit, im_sim_fit)
+slope_linear_fit = _slope_linear(f_fit, im_fit_fit)
+slope_linear_cx = _slope_linear(f_fit, im_cx_fit)
+
+# Power-law fit on SI frequency so the coefficient has physical units.
+m_sim, k_sim = _power_law_fit(f_hz[mask], im_sim_fit)
+m_fit, k_fit = _power_law_fit(f_hz[mask], im_fit_fit)
+m_cx, k_cx = _power_law_fit(f_hz[mask], im_cx_fit)
+
+# If |Im(Z)| = k*f^m and m ≈ 1, an inductor has k ≈ 2*pi*L.
+L_from_powerlaw_sim = k_sim / (2.0 * np.pi)
+L_from_powerlaw_fit = k_fit / (2.0 * np.pi)
+L_from_powerlaw_cx = k_cx / (2.0 * np.pi)
+
+print("\nSlope analysis for |Im(Z11)| vs frequency:")
+print("  Log-log slope  (PEEC)     : "
+    f"{slope_loglog_sim:.6f}  (|Im(Z)| ~ f^{slope_loglog_sim:.3f})")
+print("  Log-log slope  (JAX fit)  : "
+    f"{slope_loglog_fit:.6f}  (|Im(Z)| ~ f^{slope_loglog_fit:.3f})")
+print("  Log-log slope  (Circulax) : "
+    f"{slope_loglog_cx:.6f}  (|Im(Z)| ~ f^{slope_loglog_cx:.3f})")
+
+print("  Linear slope   (PEEC)     : "
+    f"{slope_linear_sim:.6e} ohm/GHz")
+print("  Linear slope   (JAX fit)  : "
+    f"{slope_linear_fit:.6e} ohm/GHz")
+print("  Linear slope   (Circulax) : "
+    f"{slope_linear_cx:.6e} ohm/GHz")
+
+print("\nInductance from power-law coefficient (k/(2*pi)):")
+print("  L_power (PEEC)     : "
+    f"{L_from_powerlaw_sim * 1e12:.4f} pH   (m = {m_sim:.6f})")
+print("  L_power (JAX fit)  : "
+    f"{L_from_powerlaw_fit * 1e12:.4f} pH   (m = {m_fit:.6f})")
+print("  L_power (Circulax) : "
+    f"{L_from_powerlaw_cx * 1e12:.4f} pH   (m = {m_cx:.6f})")
