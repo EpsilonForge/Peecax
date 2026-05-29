@@ -40,6 +40,13 @@ from .gds import (
     segments_from_component,
     spiral_inductor_segments,
 )
+from .rlc_fit import (
+    z_rlc,
+    estimate_rlc_params,
+    fit_rlc,
+    recover_LC,
+    circulax_refine,
+)
 
 __all__ = [
     # geometry
@@ -60,4 +67,10 @@ __all__ = [
     "segments_from_path",
     "segments_from_component",
     "spiral_inductor_segments",
+    # rlc_fit
+    "z_rlc",
+    "estimate_rlc_params",
+    "fit_rlc",
+    "recover_LC",
+    "circulax_refine",
 ]
